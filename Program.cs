@@ -164,6 +164,38 @@ namespace MAXI_BROKER
             fbCon.Close();
         }
 
+        static void transferWorkers()
+        {
+
+            FbConnection fbCon = new FbConnection(connectionString);
+            fbCon.Open();
+            OdbcConnection odbcCon = new OdbcConnection(odbcConfig);
+            odbcCon.Open();
+
+
+            FbCommand fbCmd = new FbCommand();
+            fbCmd.CommandText = "SELECT * FROM BROKERZY;";
+            fbCmd.Connection = fbCon;
+
+            OdbcCommand odbcCmd = new OdbcCommand();
+            odbcCmd.Connection = odbcCon;
+
+            FbDataReader fbReader = fbCmd.ExecuteReader();
+            while (fbReader.Read())
+            {
+                string Imie = prepareString(fbReader["IMIE"]);
+                string Nazwisko = prepareString(fbReader["NAZWISKO"]);
+                string Uwagi = prepareString(fbReader["UWAGI"]);
+
+
+                odbcMakeTransaction(String.Format("INSERT INTO osoby (Imie, Nazwisko, Uwagi) VALUES ({0}, {1}, {2})", Imie, Nazwisko, Uwagi), odbcCmd);
+
+            }
+
+            odbcCon.Close();
+            fbCon.Close();
+        }
+
 
         static void transferPersons()
         {
@@ -175,7 +207,7 @@ namespace MAXI_BROKER
 
 
             FbCommand fbCmd = new FbCommand();
-            fbCmd.CommandText = "SELECT * FROM PRACOWNICY;";
+            fbCmd.CommandText = "SELECT * FROM KLIENCI;";
             fbCmd.Connection = fbCon;
 
             OdbcCommand odbcCmd = new OdbcCommand();
@@ -184,13 +216,36 @@ namespace MAXI_BROKER
             FbDataReader fbReader = fbCmd.ExecuteReader();
             while (fbReader.Read())
             {
-                string Imie = prepareString(fbReader["IMIE"]);
-                string Nazwisko = prepareString(fbReader["NAZWISKO"]);
+                string idOs = "100" + prepareNumber(fbReader["ID"]);
+                string Regon = prepareString(fbReader["REGON"]);
                 string Pesel = prepareString(fbReader["PESEL"]);
-                string tel1 = prepareString(fbReader["TELEFON1"]);
-                string tel2 = prepareString(fbReader["TELEFON2"]);
+                string tel1 = prepareString(fbReader["TELEFON_CENTRALI"]);
+                string tel2 = prepareString(fbReader["TELEFON_2"]);
+                string telKom = prepareString(fbReader["TELEFON_3"]);
                 string email = prepareString(fbReader["EMAIL"]);
+                string nip = prepareString(fbReader["NIP"]);
+                string isCompany = "True";
+                string Notatki = prepareString(fbReader["UWAGI"]);
 
+                string zarzad = prepareString(fbReader["ZARZAD"]);
+
+
+                odbcMakeTransaction(String.Format("INSERT INTO osoby (id, Regon, Pesel, Tel, Tel2, Tel_kom, email, nip, notatki, firma) " +
+                    "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9} )",idOs, Regon, Pesel, tel1, tel2, telKom, email, nip, Notatki, isCompany), odbcCmd);
+
+                
+                
+                
+                if(zarzad != "''")
+                {
+                    string[] zarzadTab = zarzad.Replace("'", "").Replace("  ", " ").Split(new char[] { ' ', '\t' });
+
+                    odbcMakeTransaction(String.Format("INSERT INTO wspol (id_os, imie, nazwisko, pesel, regon, nip) VALUES " +
+                    "({0}, {1}, {2}, {3}, {4}, {5})", idOs, String.Format("'{0}'", zarzadTab[0]), String.Format("'{0}'", zarzadTab[1]), Pesel, Regon, nip),
+                    odbcCmd);
+
+
+                }
 
 
             }
