@@ -186,9 +186,11 @@ namespace MAXI_BROKER
                 string Imie = prepareString(fbReader["IMIE"]);
                 string Nazwisko = prepareString(fbReader["NAZWISKO"]);
                 string Uwagi = prepareString(fbReader["UWAGI"]);
+                string isCompany = "False";
 
 
-                odbcMakeTransaction(String.Format("INSERT INTO osoby (Imie, Nazwisko, Uwagi) VALUES ({0}, {1}, {2})", Imie, Nazwisko, Uwagi), odbcCmd);
+                odbcMakeTransaction(String.Format("INSERT INTO osoby (Imie, Nazwisko, Uwagi, firma) VALUES ({0}, {1}, {2}, {3})",
+                    Imie, Nazwisko, Uwagi, isCompany), odbcCmd);
 
             }
 
@@ -218,6 +220,7 @@ namespace MAXI_BROKER
             {
                 string idIns = prepareNumber(fbReader["ID"]);
                 string dataWyst = prepareDate(fbReader["DATA_POLISY"]);
+                string dataZwr = prepareDate(fbReader["DATA_ZWROTU"]);
                 string okresOd = prepareDate(fbReader["OKRES_OD"]);
                 string okresDo = prepareDate(fbReader["OKRES_DO"]);
                 string nrIns = prepareDate(fbReader["NUMER_POLISY"]);
@@ -227,7 +230,7 @@ namespace MAXI_BROKER
                 string idTu = "10" + prepareNumber(fbReader["ID_ZAKLAD_UB"]);
                 
 
-                if(odbcCheckIsExists(String.Format("SELECT 1 FROM Pol_rodz WHERE id = {0}", rodzIdIns), odbcCmd))
+                if(!odbcCheckIsExists(String.Format("SELECT 1 FROM Pol_rodz WHERE id = {0}", rodzIdIns), odbcCmd))
                 {
                     FbCommand fbCmd1 = new FbCommand();
                     fbCmd.CommandText = String.Format("SELECT * FROM RODZAJE_POLIS WHERE ID = {0}", rodzIdInsCheck);
@@ -241,9 +244,22 @@ namespace MAXI_BROKER
                     fbReader1.Close();
 
                 }
-                odbcMakeTransaction(String.Format("INSERT INTO Polisy (id, Nr_polisy, Czas_od, Id_osoby, id_tu, rodzaj_polisy, data_wyst, id_typ) " +
-                    "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})", idIns, nrIns, okresOd, idOs, idTu, rodzIdIns, dataWyst, rodzIdIns), odbcCmd);
+                odbcMakeTransaction(String.Format("INSERT INTO Polisy (id, Nr_polisy, Czas_od, Id_osoby, id_tu, rodzaj_polisy, id_typ) " +
+                    "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})", idIns, nrIns, okresOd, idOs, idTu, rodzIdIns, rodzIdIns), odbcCmd);
                 
+                if(okresDo != null)
+                {
+                    odbcMakeTransaction(String.Format("UPDATE Polisy SET Czas_do = {0} WHERE id = {1}", okresDo, idIns), odbcCmd);
+                }
+                if(dataWyst != null)
+                {
+                    odbcMakeTransaction(String.Format("UPDATE Polisy SET Czas_wyst = {0} WHERE id = {1}", dataWyst, idIns), odbcCmd);
+                }
+                if (dataZwr != null)
+                {
+                    odbcMakeTransaction(String.Format("UPDATE Polisy SET Czas_zwr = {0} WHERE id = {1}", dataZwr, idIns), odbcCmd);
+                }
+
             }
 
 
@@ -253,7 +269,55 @@ namespace MAXI_BROKER
             fbCon.Close();
         }
 
+        static void transferContacts()
+        {
 
+            FbConnection fbCon = new FbConnection(connectionString);
+            fbCon.Open();
+            OdbcConnection odbcCon = new OdbcConnection(odbcConfig);
+            odbcCon.Open();
+
+
+            FbCommand fbCmd = new FbCommand();
+            fbCmd.CommandText = "SELECT * FROM KONTAKTY_KLIENCI;";
+            fbCmd.Connection = fbCon;
+
+            OdbcCommand odbcCmd = new OdbcCommand();
+            odbcCmd.Connection = odbcCon;
+
+            FbDataReader fbReader = fbCmd.ExecuteReader();
+            while (fbReader.Read())
+            {
+                string idContact = "10" + prepareNumber(fbReader["ID"]);
+                int idOs = Convert.ToInt32("10" + prepareNumber(fbReader["ID_FIRMY"]));
+                string tel1 = prepareString(fbReader["TELEFON"]);
+                string tel2 = prepareString(fbReader["TELEFON1"]);
+                string email = prepareString(fbReader["EMAIL"]);
+                string imie = prepareString(fbReader["IMIE"]);
+                string nazwisko = prepareString(fbReader["NAZWISKO"]);
+
+                if (!odbcCheckIsExists(String.Format("SELECT 1 FROM osoby WHERE Imie = {0} AND Nazwisko = {1}", imie, nazwisko), odbcCmd))
+                {
+                    odbcMakeTransaction(String.Format("INSERT INTO osoby (Imie, Nazwisko) VALUES ({0}, {1}, {2})", imie, nazwisko, email), odbcCmd);
+                    idOs = odbcGetId(String.Format("SELECT id FROM osoby WHERE Imie = {0} AND Nazwisko = {1}", imie, nazwisko), odbcCmd);
+                }
+                
+                if(tel1 != "''")
+                {
+                    odbcMakeTransaction(String.Format("INSERT INTO telefony (telefon, id_os) VALUES ({0}, {1})", tel1, idOs), odbcCmd);
+                }
+                if (tel2 != "''")
+                {
+                    odbcMakeTransaction(String.Format("INSERT INTO telefony (telefon, id_os) VALUES ({0}, {1})", tel2, idOs), odbcCmd);
+                }
+
+
+
+            }
+
+            odbcCon.Close();
+            fbCon.Close();
+        }
 
         static void transferBrokers()
         {
