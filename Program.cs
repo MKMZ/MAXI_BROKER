@@ -197,6 +197,64 @@ namespace MAXI_BROKER
         }
 
 
+        static void transferInsurances()
+        {
+
+            FbConnection fbCon = new FbConnection(connectionString);
+            fbCon.Open();
+            OdbcConnection odbcCon = new OdbcConnection(odbcConfig);
+            odbcCon.Open();
+
+
+            FbCommand fbCmd = new FbCommand();
+            fbCmd.CommandText = "SELECT * FROM POLISY;";
+            fbCmd.Connection = fbCon;
+
+            OdbcCommand odbcCmd = new OdbcCommand();
+            odbcCmd.Connection = odbcCon;
+
+            FbDataReader fbReader = fbCmd.ExecuteReader();
+            while (fbReader.Read())
+            {
+                string idIns = prepareNumber(fbReader["ID"]);
+                string dataWyst = prepareDate(fbReader["DATA_POLISY"]);
+                string okresOd = prepareDate(fbReader["OKRES_OD"]);
+                string okresDo = prepareDate(fbReader["OKRES_DO"]);
+                string nrIns = prepareDate(fbReader["NUMER_POLISY"]);
+                string rodzIdInsCheck = prepareNumber(fbReader["RODZAJ_POLISY"]);
+                string rodzIdIns = "10" + rodzIdInsCheck;
+                string idOs = "10" + prepareNumber(fbReader["ID_BENEFICJENT"]);
+                string idTu = "10" + prepareNumber(fbReader["ID_ZAKLAD_UB"]);
+                
+
+                if(odbcCheckIsExists(String.Format("SELECT 1 FROM Pol_rodz WHERE id = {0}", rodzIdIns), odbcCmd))
+                {
+                    FbCommand fbCmd1 = new FbCommand();
+                    fbCmd.CommandText = String.Format("SELECT * FROM RODZAJE_POLIS WHERE ID = {0}", rodzIdInsCheck);
+                    FbDataReader fbReader1 = fbCmd1.ExecuteReader();
+                    while (fbReader1.Read())
+                    {
+                        string nazwaRodzaju = prepareString(fbReader1["NAZWA"]);
+                        odbcMakeTransaction(String.Format("INSERT INTO Pol_rodz (id, nazwa) VALUES ({0}, {1})", rodzIdIns, nazwaRodzaju), odbcCmd);
+                        
+                    }
+                    fbReader1.Close();
+
+                }
+                odbcMakeTransaction(String.Format("INSERT INTO Polisy (id, Nr_polisy, Czas_od, Id_osoby, id_tu, rodzaj_polisy, data_wyst, id_typ) " +
+                    "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})", idIns, nrIns, okresOd, idOs, idTu, rodzIdIns, dataWyst, rodzIdIns), odbcCmd);
+                
+            }
+
+
+
+            fbReader.Close();
+            odbcCon.Close();
+            fbCon.Close();
+        }
+
+
+
         static void transferBrokers()
         {
 
@@ -216,12 +274,13 @@ namespace MAXI_BROKER
             FbDataReader fbReader = fbCmd.ExecuteReader();
             while (fbReader.Read())
             {
+                string idTu = "10" + prepareNumber(fbReader["ID"]);
                 string Nazwa = prepareString(fbReader["NAZWA"]);
                 string email = prepareString(fbReader["EMAIL"]);
                 string tel = prepareString(fbReader["TELEFON_CENTRALI"]);
                 string fax = prepareString(fbReader["FAX_CENTRALI"]);
 
-                odbcMakeTransaction(String.Format("INSERT INTO Tu (nazwa, email1, tel, fax) VALUES ({0}, {1}, {2}, {3})", Nazwa, email, tel, fax), odbcCmd);
+                odbcMakeTransaction(String.Format("INSERT INTO Tu (id, nazwa, email1, tel, fax) VALUES ({0}, {1}, {2}, {3}, {4})", idTu, Nazwa, email, tel, fax), odbcCmd);
 
             }
 
@@ -249,7 +308,7 @@ namespace MAXI_BROKER
             FbDataReader fbReader = fbCmd.ExecuteReader();
             while (fbReader.Read())
             {
-                string idOs = "100" + prepareNumber(fbReader["ID"]);
+                string idOs = "10" + prepareNumber(fbReader["ID"]);
                 string Regon = prepareString(fbReader["REGON"]);
                 string Pesel = prepareString(fbReader["PESEL"]);
                 string tel1 = prepareString(fbReader["TELEFON_CENTRALI"]);
