@@ -1,0 +1,8 @@
+c:\users\mkmz9_000\documents\visual studio 2015\Projects\MAXI_BROKER\MAXI_BROKER\bin\Debug\MAXI_BROKER.exe.config
+c:\users\mkmz9_000\documents\visual studio 2015\Projects\MAXI_BROKER\MAXI_BROKER\bin\Debug\MAXI_BROKER.exe
+c:\users\mkmz9_000\documents\visual studio 2015\Projects\MAXI_BROKER\MAXI_BROKER\bin\Debug\MAXI_BROKER.pdb
+c:\users\mkmz9_000\documents\visual studio 2015\Projects\MAXI_BROKER\MAXI_BROKER\bin\Debug\FirebirdSql.Data.FirebirdClient.dll
+c:\users\mkmz9_000\documents\visual studio 2015\Projects\MAXI_BROKER\MAXI_BROKER\bin\Debug\FirebirdSql.Data.FirebirdClient.pdb
+c:\users\mkmz9_000\documents\visual studio 2015\Projects\MAXI_BROKER\MAXI_BROKER\obj\Debug\MAXI_BROKER.csprojResolveAssemblyReference.cache
+c:\users\mkmz9_000\documents\visual studio 2015\Projects\MAXI_BROKER\MAXI_BROKER\obj\Debug\MAXI_BROKER.exe
+c:\users\mkmz9_000\documents\visual studio 2015\Projects\MAXI_BROKER\MAXI_BROKER\obj\Debug\MAXI_BROKER.pdb
