@@ -174,7 +174,7 @@ namespace MAXI_BROKER
 
 
             FbCommand fbCmd = new FbCommand();
-            fbCmd.CommandText = "SELECT * FROM BROKERZY;";
+            fbCmd.CommandText = "SELECT * FROM PRACOWNICY;";
             fbCmd.Connection = fbCon;
 
             OdbcCommand odbcCmd = new OdbcCommand();
@@ -189,6 +189,39 @@ namespace MAXI_BROKER
 
 
                 odbcMakeTransaction(String.Format("INSERT INTO osoby (Imie, Nazwisko, Uwagi) VALUES ({0}, {1}, {2})", Imie, Nazwisko, Uwagi), odbcCmd);
+
+            }
+
+            odbcCon.Close();
+            fbCon.Close();
+        }
+
+
+        static void transferBrokers()
+        {
+
+            FbConnection fbCon = new FbConnection(connectionString);
+            fbCon.Open();
+            OdbcConnection odbcCon = new OdbcConnection(odbcConfig);
+            odbcCon.Open();
+
+
+            FbCommand fbCmd = new FbCommand();
+            fbCmd.CommandText = "SELECT * FROM BROKERZY;";
+            fbCmd.Connection = fbCon;
+
+            OdbcCommand odbcCmd = new OdbcCommand();
+            odbcCmd.Connection = odbcCon;
+
+            FbDataReader fbReader = fbCmd.ExecuteReader();
+            while (fbReader.Read())
+            {
+                string Nazwa = prepareString(fbReader["NAZWA"]);
+                string email = prepareString(fbReader["EMAIL"]);
+                string tel = prepareString(fbReader["TELEFON_CENTRALI"]);
+                string fax = prepareString(fbReader["FAX_CENTRALI"]);
+
+                odbcMakeTransaction(String.Format("INSERT INTO Tu (nazwa, email1, tel, fax) VALUES ({0}, {1}, {2}, {3})", Nazwa, email, tel, fax), odbcCmd);
 
             }
 
@@ -234,8 +267,6 @@ namespace MAXI_BROKER
                     "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9} )",idOs, Regon, Pesel, tel1, tel2, telKom, email, nip, Notatki, isCompany), odbcCmd);
 
                 
-                
-                
                 if(zarzad != "''")
                 {
                     string[] zarzadTab = zarzad.Replace("'", "").Replace("  ", " ").Split(new char[] { ' ', '\t' });
@@ -254,7 +285,7 @@ namespace MAXI_BROKER
             fbCon.Close();
         }
 
-        static void transferInsurances()
+        static void transferInvoices()
         {
 
             FbConnection fbCon = new FbConnection(connectionString);
