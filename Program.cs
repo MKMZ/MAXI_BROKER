@@ -366,7 +366,7 @@ namespace MAXI_BROKER
                 string fbIdFakt = prepareString(fbReader["ID"]);
                 string bruttoSum = prepareNumber(fbReader["KWOTA"]);
                 string nettoSum = prepareNumber(fbReader["KWOTA_NETTO"]);
-                string vatSum = (Convert.ToDouble(bruttoSum) - Convert.ToDouble(nettoSum)).ToString();
+                string vatSum = (Convert.ToDecimal(bruttoSum) - Convert.ToDecimal(nettoSum)).ToString();
                 string zapl = Convert.ToBoolean(prepareNumber(fbReader["ROZLICZONA"])) ? "'TAK'" : "'NIE'";
                 string dataFakt = prepareDate(fbReader["DATA"]);
                 string dataSprze = prepareDate(fbReader["DATA_SPRZEDARZY"]);
@@ -396,9 +396,9 @@ namespace MAXI_BROKER
                 FbDataReader fbReader1 = fbCmd1.ExecuteReader();
                 while (fbReader1.Read())
                 {
-                    double brutto = Convert.ToDouble(prepareNumber(fbReader1["CENA_BRUTTO"]));
-                    double netto = Convert.ToDouble(prepareNumber(fbReader1["CENA_NETTO"]));
-                    double vat = brutto - netto;
+                    decimal brutto = Convert.ToDecimal(prepareNumber(fbReader1["CENA_BRUTTO"]));
+                    decimal netto = Convert.ToDecimal(prepareNumber(fbReader1["CENA_NETTO"]));
+                    decimal vat = brutto - netto;
                     string stawkaVat = prepareNumber(fbReader1["VAT"]);
                     if (stawkaVat == "NULL" || stawkaVat == "-1")
                     {
@@ -412,22 +412,67 @@ namespace MAXI_BROKER
                     odbcMakeTransaction(String.Format("INSERT INTO fakt_poz (id_fakt, nazwa, jm, ilosc, netto, " +
                         "wartosc_netto, stawka_vat, vat, wartosc_brutto, skw) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9} )",
                         idFakt, nazwaPoz, jMiary, ilosc, netto, netto, stawkaVat, vat, brutto, skw ), odbcCmd);
-
-                    
-
-
                 }
-
-
             }
             odbcCon.Close();
             fbCon.Close();
         }
 
+        static void transferDocuments() {
+
+            FbConnection fbCon = new FbConnection(connectionString);
+            fbCon.Open();
+            OdbcConnection odbcCon = new OdbcConnection(odbcConfig);
+            odbcCon.Open();
+
+            FbCommand fbCmd = new FbCommand();
+            fbCmd.CommandText = "SELECT * FROM rejestr_dokumentow;";
+            fbCmd.Connection = fbCon;
+
+            OdbcCommand odbcCmd = new OdbcCommand();
+            odbcCmd.Connection = odbcCon;
+
+            FbDataReader fbReader = fbCmd.ExecuteReader();
+            while (fbReader.Read()) {
+                string fbIdDok = "10" + prepareString(fbReader["ID"]);
+                string fbIdPolisy = "10" + prepareString(fbReader["ID_POLISY"]);
+                string fbNazwa = prepareString(fbReader["NAZWA"]);
+                string fbRodzaj = prepareString(fbReader["RODZAJ"]);
+                string fbIdPracownika = prepareString(fbReader["OSOBA_WPROWADZAJACA"]);
+                string fbDataZawarcia = prepareDate(fbReader["DATA_ZAWARCIA"]);
+
+                odbcMakeTransaction(String.Format("INSERT INTO dok (id_p, typ, nazwa) VALUES ({0}, {1}, {2})", fbIdPolisy, fbRodzaj, fbNazwa),
+                    odbcCmd);
+
+                int idDok = odbcGetId(String.Format("SELECT id FROM dok WHERE id_p = {0} AND typ = {1} AND nazwa = {2}", fbIdPolisy, fbRodzaj, fbNazwa),
+                    odbcCmd);
+
+                FbCommand fbCmd1 = new FbCommand();
+                fbCmd1.CommandText = String.Format(String.Format("SELECT Imie, Nazwisko FROM Pracownicy WHERE SYMBOL = {0}", fbIdPracownika.ToString()));
+                fbCmd1.Connection = fbCon;
+                FbDataReader fbReader1 = fbCmd1.ExecuteReader();
+                while (fbReader1.Read()) {
+                    string imie = prepareString(fbReader1["IMIE"]);
+                    string nazwisko = prepareString(fbReader1["Nazwisko"]);
+
+                    int idOsoby = odbcGetId(String.Format("SELECT id FROM Osoby WHERE Imie = {0} AND Nazwa = {1}", imie, nazwisko), odbcCmd);
+
+                    odbcMakeTransaction(String.Format("UPDATE doc SET id_agent = {0} WHERE id = {1} ", idOsoby, idDok), odbcCmd);
+                }
+             
+
+                if (fbDataZawarcia != null) {
+                    odbcMakeTransaction(String.Format("UPDATE dok SET data = {0} WHERE id = {1} ", fbDataZawarcia, idDok), odbcCmd);
+                }
+            }
+            odbcCon.Close();
+            fbCon.Close();
+        }
 
         static void Main(string[] args)
         {
             transferPersons();
+            //transferDocuments();
             //transferCars();
             //transferInsurances();
 
